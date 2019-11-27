@@ -19,12 +19,12 @@ public:
     };
     Token() = default;
     Token(Kind kind, const char *beg, int length) {
-        this->kind = kind; this->lexeme = std::string(beg, length);}
+        this->kind_ = kind; this->lexeme = std::string(beg, length);}
 
-    bool is(Kind kind) const { return this->kind == kind; }
+    Token::Kind kind() const { return kind_; }
     std::string get() const { return this->lexeme; }
 private:
-    Kind kind = Kind::None;
+    Kind kind_ = Kind::None;
     std::string lexeme{};
 };
 
