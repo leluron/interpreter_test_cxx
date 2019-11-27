@@ -25,7 +25,7 @@ private:
 };
 
 enum class BOpType {
-    Plus, Minus
+    Plus, Minus ,Mul, Div
 };
 
 class BOpExpr : public Expr {

@@ -52,6 +52,8 @@ Token Lexer::next() {
         if (*beg == '=') k = Token::Kind::Assign;
         else if (*beg == '+') k = Token::Kind::Plus  ;
         else if (*beg == '-') k = Token::Kind::Minus ;
+        else if (*beg == '*') k = Token::Kind::Mul   ;
+        else if (*beg == '/') k = Token::Kind::Div   ;
         else if (*beg == '(') k = Token::Kind::LP    ;
         else if (*beg == ')') k = Token::Kind::RP    ;
         beg++;

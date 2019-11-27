@@ -28,9 +28,13 @@ double Machine::eval(std::shared_ptr<Expr> e) {
         auto b = dynamic_pointer_cast<BOpExpr>(e);
         double l = eval(b->getLeft ());
         double r = eval(b->getRight());
-        if (b->getType() == BOpType::Plus) return l+r;
-        else if (b->getType() == BOpType::Minus) return l-r;
-        else throw runtime_error("Not Supported");
+        switch (b->getType()) {
+            case BOpType::Plus : return l+r;
+            case BOpType::Minus: return l-r;
+            case BOpType::Mul  : return l*r;
+            case BOpType::Div  : return l/r;
+            default: throw runtime_error("Not Supported");
+        }
     } else {
         throw runtime_error("Not Supported");
     }

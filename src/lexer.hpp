@@ -12,6 +12,8 @@ public:
         Assign,
         Plus,
         Minus,
+        Mul,
+        Div,
         LP,
         RP,
         Print,
