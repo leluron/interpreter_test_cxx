@@ -15,6 +15,10 @@ public:
     void clearOutput() { output = ""; }
 private:
     void execStatement(std::shared_ptr<Statement> s);
+    void execPrint(std::shared_ptr<PrintStatement> s);
+    void execAssign(std::shared_ptr<AssignStatement> s);
     double eval(std::shared_ptr<Expr> e);
     std::string output;
+
+    std::map<std::string, double> vars;
 };

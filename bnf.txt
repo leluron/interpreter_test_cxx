@@ -1,0 +1,17 @@
+statementList ::= { statement }
+
+statement ::= "print" expression
+            | identifier "=" expression
+
+
+expression ::= factor ("+" | "-" ) factor
+             | factor
+
+factor ::= primary ("*" | "/" ) primary
+         | primary
+
+primary ::= "(" expression ")"
+          | number
+          | identifier
+
+

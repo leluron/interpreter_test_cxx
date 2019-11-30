@@ -4,7 +4,7 @@
 #include <memory>
 
 enum class ExprKind {
-    Number, BOp
+    Number, BOp, Identifier
 };
 
 class Expr {
@@ -22,6 +22,17 @@ public:
 private:
     double value;
 
+};
+
+class IdentifierExpr : public Expr {
+
+public:
+    ExprKind kind() { return ExprKind::Identifier; }
+    IdentifierExpr() = default;
+    IdentifierExpr(std::string name) {this->name = name; }
+    std::string get() { return name; }
+private:
+    std::string name;
 };
 
 enum class BOpType {
@@ -47,7 +58,7 @@ private:
 };
 
 enum class StatementKind {
-    Print
+    Print, Assign
 };
 
 class Statement {
@@ -63,3 +74,15 @@ public:
 private:
     std::shared_ptr<Expr> e;
 };
+
+class AssignStatement : public Statement {
+public:
+    StatementKind kind() { return StatementKind::Assign; }
+    AssignStatement(std::string id, std::shared_ptr<Expr> e) { this->id = id; this->e = e;}
+    std::shared_ptr<Expr> getExpr() { return e; }
+    std::string getId() { return id; }
+private:
+    std::string id;
+    std::shared_ptr<Expr> e;
+};
+

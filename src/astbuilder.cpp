@@ -3,8 +3,12 @@
 
 using namespace std;
 
-shared_ptr<Statement> ASTBuilder::nextStatement() {
-    return parseStatement();
+vector<std::shared_ptr<Statement>> ASTBuilder::parseStatementList() {
+    vector<std::shared_ptr<Statement>> list = {parseStatement()};
+    while (lexer.peek().kind() != Token::Kind::End) {
+        list.push_back(parseStatement());
+    }
+    return list;
 }
 
 bool ASTBuilder::expect(Token::Kind kind) {
@@ -15,9 +19,23 @@ shared_ptr<Statement> ASTBuilder::parseStatement() {
     Token token = lexer.next();
     switch (token.kind()) {
         case Token::Kind::Print: return parsePrintStatement();
+        case Token::Kind::Identifier: return parseStatementAux(token.get());
         default: throw runtime_error("Not Supported");
     }
 }
+
+shared_ptr<Statement> ASTBuilder::parseStatementAux(string id) {
+    Token token = lexer.next();
+    switch (token.kind()) {
+        case Token::Kind::Assign: return parseAssignStatement(id);
+        default: throw runtime_error("Not supported");
+    }
+}
+
+shared_ptr<Statement> ASTBuilder::parseAssignStatement(string id) {
+    return shared_ptr<Statement>(new AssignStatement(id, parseExpression())) ;
+}
+
 
 shared_ptr<Statement> ASTBuilder::parsePrintStatement() {
     return shared_ptr<Statement>(new PrintStatement(parseExpression()));
@@ -72,6 +90,9 @@ shared_ptr<Expr> ASTBuilder::parsePrimary() {
             double number;
             ss >> number;
             return shared_ptr<Expr>(new NumberExpr(number));
+        }
+        case Token::Kind::Identifier: {
+            return shared_ptr<Expr>(new IdentifierExpr(token.get()));
         }
 
         default:

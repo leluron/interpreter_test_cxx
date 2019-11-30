@@ -16,18 +16,24 @@ public:
         Div,
         LP,
         RP,
+        Semicolon,
         Print,
         End
     };
     Token() = default;
-    Token(Kind kind, const char *beg, int length) {
-        this->kind_ = kind; this->lexeme = std::string(beg, length);}
+    Token(Kind kind, const char *beg, int length, int line, int column) {
+        this->kind_ = kind;
+        this->lexeme = std::string(beg, length);
+        this->line = line;
+        this->column = column;
+    }
 
     Token::Kind kind() const { return kind_; }
     std::string get() const { return this->lexeme; }
 private:
     Kind kind_ = Kind::None;
     std::string lexeme{};
+    int line, column;
 };
 
 class Lexer {
@@ -41,6 +47,11 @@ public:
     Token peek();
 
 private:
+    void advance();
+
     const char * beg = 0;
+
+    int currentLine = 0;
+    int currentColumn = 0;
 
 };

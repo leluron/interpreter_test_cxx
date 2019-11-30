@@ -9,16 +9,26 @@ using namespace std;
 void Machine::interpret(string expr) {
     Lexer lexer;
     lexer.set(expr.c_str());
-    auto st = ASTBuilder(lexer).nextStatement();
-    execStatement(st);
+    auto st = ASTBuilder(lexer).parseStatementList();
+    for (auto s : st) {
+        execStatement(s);
+    }
 }
 
 void Machine::execStatement(std::shared_ptr<Statement> s) {
-    if (s->kind() == StatementKind::Print) {
-        cout << eval(dynamic_pointer_cast<PrintStatement>(s)->getExpr()) << endl;
-    } else {
-        throw runtime_error("Not Supported");
+    switch (s->kind()) {
+        case StatementKind::Print: execPrint(dynamic_pointer_cast<PrintStatement>(s)); break;
+        case StatementKind::Assign: execAssign(dynamic_pointer_cast<AssignStatement>(s)); break;
+        default: throw runtime_error("Not Supported");
     }
+}
+
+void Machine::execPrint(std::shared_ptr<PrintStatement> s) {
+    cout << eval(s->getExpr()) << endl;
+}
+
+void Machine::execAssign(std::shared_ptr<AssignStatement> s) {
+    vars[s->getId()] = eval(s->getExpr());
 }
 
 double Machine::eval(std::shared_ptr<Expr> e) {
@@ -35,6 +45,11 @@ double Machine::eval(std::shared_ptr<Expr> e) {
             case BOpType::Div  : return l/r;
             default: throw runtime_error("Not Supported");
         }
+    } else if (e->kind() == ExprKind::Identifier) {
+        auto name = dynamic_pointer_cast<IdentifierExpr>(e)->get();
+        auto it = vars.find(name);
+        if (it == vars.end()) throw runtime_error("Variable doesn't exist");
+        return it->second;
     } else {
         throw runtime_error("Not Supported");
     }
