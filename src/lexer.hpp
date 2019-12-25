@@ -20,6 +20,7 @@ public:
         RC,
         Semicolon,
         Function,
+        Nil,
     };
     Token() = default;
     Token(Kind kind, const char *beg, int length) {

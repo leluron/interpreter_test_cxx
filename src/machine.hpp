@@ -11,7 +11,7 @@
 class Machine {
 public:
     void interpret(std::string expr);
-    double getVariable(std::string var);
+    std::shared_ptr<Value> getVariable(std::string var);
 private:
     void execStatement(std::shared_ptr<Statement> s);
     void execAssign(std::shared_ptr<AssignStatement> s);

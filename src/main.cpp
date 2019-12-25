@@ -23,5 +23,5 @@ int main(int argc, char **argv) {
 
     machine.interpret(text);
 
-    cout << machine.getVariable("var3") << endl;
+    cout << machine.getVariable("var3")->toString() << endl;
 }

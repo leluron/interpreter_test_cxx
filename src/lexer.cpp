@@ -68,6 +68,7 @@ void Lexer::token(Token::Kind kind) {
 
 vector<Token> Lexer::tokenize() {
     keywords["function"] = Token::Kind::Function;
+    keywords["nil"] = Token::Kind::Nil;
     atoms['='] = Token::Kind::Assign;
     atoms['+'] = Token::Kind::Plus;
     atoms['-'] = Token::Kind::Minus;
