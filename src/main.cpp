@@ -22,4 +22,6 @@ int main(int argc, char **argv) {
     Machine machine;
 
     machine.interpret(text);
+
+    cout << machine.getVariable("var3") << endl;
 }

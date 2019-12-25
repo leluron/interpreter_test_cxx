@@ -66,15 +66,6 @@ public:
     virtual StatementKind kind() = 0;
 };
 
-class PrintStatement : public Statement {
-public:
-    StatementKind kind() { return StatementKind::Print; }
-    PrintStatement(std::shared_ptr<Expr> e) { this->e = e;}
-    std::shared_ptr<Expr> getExpr() { return e; }
-private:
-    std::shared_ptr<Expr> e;
-};
-
 class AssignStatement : public Statement {
 public:
     StatementKind kind() { return StatementKind::Assign; }

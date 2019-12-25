@@ -3,42 +3,49 @@
 
 using namespace std;
 
+Token ASTBuilder::next() {
+    if (index >= tokens.size()) return Token();
+    index += 1;
+    return tokens[index-1];
+}
+
+Token ASTBuilder::peek() {
+    auto i = index;
+    Token t = next();
+    index = i;
+    return t;
+}
+
 vector<std::shared_ptr<Statement>> ASTBuilder::parseStatementList() {
     vector<std::shared_ptr<Statement>> list = {parseStatement()};
-    while (lexer.peek().kind() != Token::Kind::End) {
+    while (peek().kind() != Token::Kind::End) {
         list.push_back(parseStatement());
     }
     return list;
 }
 
 bool ASTBuilder::expect(Token::Kind kind) {
-    return lexer.next().kind() == kind;
+    return next().kind() == kind;
 }
 
 shared_ptr<Statement> ASTBuilder::parseStatement() {
-    Token token = lexer.next();
+    Token token = next();
     switch (token.kind()) {
-        case Token::Kind::Print: return parsePrintStatement();
         case Token::Kind::Identifier: return parseStatementAux(token.get());
         default: throw runtime_error("Not Supported");
     }
 }
 
 shared_ptr<Statement> ASTBuilder::parseStatementAux(string id) {
-    Token token = lexer.next();
+    Token token = next();
     switch (token.kind()) {
         case Token::Kind::Assign: return parseAssignStatement(id);
-        default: throw runtime_error("Not supported");
+        default: throw runtime_error("Not Supported");
     }
 }
 
 shared_ptr<Statement> ASTBuilder::parseAssignStatement(string id) {
     return shared_ptr<Statement>(new AssignStatement(id, parseExpression())) ;
-}
-
-
-shared_ptr<Statement> ASTBuilder::parsePrintStatement() {
-    return shared_ptr<Statement>(new PrintStatement(parseExpression()));
 }
 
 shared_ptr<Expr> ASTBuilder::parseExpression() {
@@ -47,7 +54,7 @@ shared_ptr<Expr> ASTBuilder::parseExpression() {
 }
 
 shared_ptr<Expr> ASTBuilder::parseExpressionAux(std::shared_ptr<Expr> e) {
-    Token token = lexer.peek();
+    Token token = peek();
     BOpType type;
     switch (token.kind()) {
         case Token::Kind::Plus: type = BOpType::Plus; break;
@@ -55,7 +62,7 @@ shared_ptr<Expr> ASTBuilder::parseExpressionAux(std::shared_ptr<Expr> e) {
         default :
             return e;
     }
-    lexer.next();
+    next();
     return parseExpressionAux(shared_ptr<Expr>(new BOpExpr(type, e, parseFactor())));
 }
 
@@ -65,7 +72,7 @@ shared_ptr<Expr> ASTBuilder::parseFactor() {
 }
 
 shared_ptr<Expr> ASTBuilder::parseFactorAux(std::shared_ptr<Expr> e) {
-    Token token = lexer.peek();
+    Token token = peek();
     BOpType type;
     switch (token.kind()) {
         case Token::Kind::Mul: type = BOpType::Mul; break;
@@ -73,12 +80,12 @@ shared_ptr<Expr> ASTBuilder::parseFactorAux(std::shared_ptr<Expr> e) {
         default :
             return e;
     }
-    lexer.next();
+    next();
     return parseExpressionAux(shared_ptr<Expr>(new BOpExpr(type, e, parsePrimary())));
 }
 
 shared_ptr<Expr> ASTBuilder::parsePrimary() {
-    Token token = lexer.next();
+    Token token = next();
     switch (token.kind()) {
         case Token::Kind::LP: {
             std::shared_ptr<Expr> e = parseExpression();

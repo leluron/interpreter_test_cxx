@@ -7,9 +7,8 @@
 using namespace std;
 
 void Machine::interpret(string expr) {
-    Lexer lexer;
-    lexer.set(expr.c_str());
-    auto st = ASTBuilder(lexer).parseStatementList();
+    auto tokens = lexer(expr.c_str());
+    auto st = ASTBuilder(tokens).parseStatementList();
     for (auto s : st) {
         execStatement(s);
     }
@@ -17,14 +16,9 @@ void Machine::interpret(string expr) {
 
 void Machine::execStatement(std::shared_ptr<Statement> s) {
     switch (s->kind()) {
-        case StatementKind::Print: execPrint(dynamic_pointer_cast<PrintStatement>(s)); break;
         case StatementKind::Assign: execAssign(dynamic_pointer_cast<AssignStatement>(s)); break;
         default: throw runtime_error("Not Supported");
     }
-}
-
-void Machine::execPrint(std::shared_ptr<PrintStatement> s) {
-    cout << eval(s->getExpr()) << endl;
 }
 
 void Machine::execAssign(std::shared_ptr<AssignStatement> s) {
@@ -53,4 +47,8 @@ double Machine::eval(std::shared_ptr<Expr> e) {
     } else {
         throw runtime_error("Not Supported");
     }
+}
+
+double Machine::getVariable(std::string var) {
+    return vars[var];
 }

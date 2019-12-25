@@ -2,6 +2,33 @@
 
 #include <cstring>
 
+using namespace std;
+
+class Lexer {
+
+public:
+    Lexer(const char *beg) { this->beg = beg; }
+
+    vector<Token> tokenize();
+
+private:
+    void advance();
+    Token next();
+    Token peek();
+
+    const char * beg = 0;
+
+    int currentLine = 0;
+    int currentColumn = 0;
+
+};
+
+vector<Token> lexer(const char *beg) {
+    Lexer lex(beg);
+    return lex.tokenize();
+
+}
+
 bool isDigit(char c) {
     return (c>='0' && c<='9');
 }
@@ -43,10 +70,19 @@ void Lexer::advance() {
     currentColumn++;
 }
 
+vector<Token> Lexer::tokenize() {
+    vector<Token> tokens;
+    while(true) {
+        Token t = next();
+        if (t.kind() == Token::Kind::End) return tokens;
+        tokens.push_back(t);
+    }
+}
+
 Token Lexer::next() {
     while (isSpace(*beg)) beg++;
     if (isEnd(*beg)) return Token(Token::Kind::End, beg, 0, currentLine, currentColumn);
-    Token::Kind k = Token::Kind::None; 
+    Token::Kind k = Token::Kind::End; 
     const char *start = beg;
 
     if (isNumberStart(*beg)) {
@@ -70,7 +106,7 @@ Token Lexer::next() {
     }
 
     int length = beg-start;
-    if (strncmp(start, "print", length) == 0) k = Token::Kind::Print;
+    if (strncmp(start, "function", length) == 0) k = Token::Kind::Function;
     return Token(k, start, length, currentLine, currentColumn);
 }
 

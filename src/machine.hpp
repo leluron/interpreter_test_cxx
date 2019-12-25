@@ -11,14 +11,11 @@
 class Machine {
 public:
     void interpret(std::string expr);
-    std::string getOutput() { return output;}
-    void clearOutput() { output = ""; }
+    double getVariable(std::string var);
 private:
     void execStatement(std::shared_ptr<Statement> s);
-    void execPrint(std::shared_ptr<PrintStatement> s);
     void execAssign(std::shared_ptr<AssignStatement> s);
     double eval(std::shared_ptr<Expr> e);
-    std::string output;
 
     std::map<std::string, double> vars;
 };
