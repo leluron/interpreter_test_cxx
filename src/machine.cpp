@@ -1,5 +1,6 @@
 #include "machine.hpp"
 #include "lexer.hpp"
+#include "ast.hpp"
 #include "astbuilder.hpp"
 
 #include <iostream>
@@ -10,43 +11,34 @@ void Machine::interpret(string expr) {
     auto tokens = lexer(expr.c_str());
     auto st = ASTBuilder(tokens).parseStatementList();
     for (auto s : st) {
-        execStatement(s);
+        s->exec(vars);
     }
 }
 
-void Machine::execStatement(std::shared_ptr<Statement> s) {
-    switch (s->kind()) {
-        case StatementKind::Assign: execAssign(dynamic_pointer_cast<AssignStatement>(s)); break;
+void AssignStatement::exec(table &t) {
+    t[id] = e->eval(t);
+}
+
+double NumberExpr::eval(const table &t) {
+    return value;
+}
+
+double BOpExpr::eval(const table &t) {
+    auto l = e1->eval(t);
+    auto r = e2->eval(t);
+    switch (type) {
+        case BOpType::Plus : return l+r;
+        case BOpType::Minus: return l-r;
+        case BOpType::Mul  : return l*r;
+        case BOpType::Div  : return l/r;
         default: throw runtime_error("Not Supported");
     }
 }
 
-void Machine::execAssign(std::shared_ptr<AssignStatement> s) {
-    vars[s->getId()] = eval(s->getExpr());
-}
-
-double Machine::eval(std::shared_ptr<Expr> e) {
-    if (e->kind() == ExprKind::Number) {
-        return dynamic_pointer_cast<NumberExpr>(e)->get();
-    } else if (e->kind() == ExprKind::BOp) {
-        auto b = dynamic_pointer_cast<BOpExpr>(e);
-        double l = eval(b->getLeft ());
-        double r = eval(b->getRight());
-        switch (b->getType()) {
-            case BOpType::Plus : return l+r;
-            case BOpType::Minus: return l-r;
-            case BOpType::Mul  : return l*r;
-            case BOpType::Div  : return l/r;
-            default: throw runtime_error("Not Supported");
-        }
-    } else if (e->kind() == ExprKind::Identifier) {
-        auto name = dynamic_pointer_cast<IdentifierExpr>(e)->get();
-        auto it = vars.find(name);
-        if (it == vars.end()) throw runtime_error("Variable doesn't exist");
-        return it->second;
-    } else {
-        throw runtime_error("Not Supported");
-    }
+double IdentifierExpr::eval(const table &t) {
+    auto it = t.find(name);
+    if (it == t.end()) throw runtime_error("Variable doesn't exist");
+    return it->second;
 }
 
 double Machine::getVariable(std::string var) {

@@ -17,5 +17,5 @@ private:
     void execAssign(std::shared_ptr<AssignStatement> s);
     double eval(std::shared_ptr<Expr> e);
 
-    std::map<std::string, double> vars;
+    table vars;
 };
