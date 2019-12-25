@@ -1,118 +1,104 @@
 #include "lexer.hpp"
 
 #include <cstring>
+#include <map>
 
 using namespace std;
 
 class Lexer {
 
 public:
-    Lexer(const char *beg) { this->beg = beg; }
+    Lexer(const char *beg) { this->cursor = beg; }
 
     vector<Token> tokenize();
 
 private:
     void advance();
-    Token next();
-    Token peek();
+    bool isDigit();
+    bool isLetter();
+    bool isWhitespace();
+    bool isEnd();
+    bool isChar(char c);
 
-    const char * beg = 0;
+    void token(Token::Kind kind);
 
-    int currentLine = 0;
-    int currentColumn = 0;
-
+    const char * cursor;
+    const char * token_start;
+    vector<Token> tokens;
+    map<string, Token::Kind> keywords;
+    map<char, Token::Kind> atoms;
 };
 
 vector<Token> lexer(const char *beg) {
     Lexer lex(beg);
     return lex.tokenize();
-
 }
 
-bool isDigit(char c) {
+bool Lexer::isDigit() {
+    char c = *cursor;
     return (c>='0' && c<='9');
 }
 
-bool isLetter(char c) {
+bool Lexer::isLetter() {
+    char c = *cursor;
     return (c>='a' && c<='z') || (c>='A' && c<='Z');
 }
 
-bool isNumberStart(char c) {
-    return isDigit(c) || c=='.';
-}
-
-bool isNumberFollow(char c) {
-    return isDigit(c) || c=='.';
-}
-
-bool isIdentifierStart(char c) {
-    return isLetter(c) || c == '_';
-}
-
-bool isIdentifierFollow(char c) {
-    return isLetter(c) || isDigit(c);
-}
-
-bool isSpace(char c) {
+bool Lexer::isWhitespace() {
+    char c = *cursor;
     return c==' ' || c=='\r' || c=='\n' || c=='\t';
 }
 
-bool isEnd(char c) {
+bool Lexer::isEnd() {
+    char c = *cursor;
     return c=='\0';
 }
 
+bool Lexer::isChar(char c) {
+    return *cursor == c;
+}
+
 void Lexer::advance() {
-    if (*beg == '\n') {
-        currentLine++;
-        currentColumn = 0;
-    }
-    beg++;
-    currentColumn++;
+    cursor++;
+}
+
+void Lexer::token(Token::Kind kind) {
+    tokens.push_back(Token(kind, token_start, cursor-token_start));
 }
 
 vector<Token> Lexer::tokenize() {
-    vector<Token> tokens;
+    keywords["function"] = Token::Kind::Function;
+    atoms['='] = Token::Kind::Assign;
+    atoms['+'] = Token::Kind::Plus;
+    atoms['-'] = Token::Kind::Minus;
+    atoms['*'] = Token::Kind::Mul;
+    atoms['/'] = Token::Kind::Div;
+    atoms['('] = Token::Kind::LP;
+    atoms[')'] = Token::Kind::RP;
+    atoms['{'] = Token::Kind::LC;
+    atoms['}'] = Token::Kind::RC;
+    atoms[';'] = Token::Kind::Semicolon;
+
     while(true) {
-        Token t = next();
-        if (t.kind() == Token::Kind::End) return tokens;
-        tokens.push_back(t);
-    }
-}
+        while (isWhitespace()) advance();
+        if (isEnd()) return tokens;
+        token_start = cursor;
 
-Token Lexer::next() {
-    while (isSpace(*beg)) beg++;
-    if (isEnd(*beg)) return Token(Token::Kind::End, beg, 0, currentLine, currentColumn);
-    Token::Kind k = Token::Kind::End; 
-    const char *start = beg;
-
-    if (isNumberStart(*beg)) {
-        k = Token::Kind::Number;
-        while (isNumberFollow(*beg)) advance();
+        if (isDigit()) {
+            while (isDigit() || isChar('.')) advance();
+            token(Token::Kind::Number);
+        }
+        else if (isLetter() || isChar('_')) {
+            while (isLetter() || isDigit() || isChar('_')) advance();
+            auto kw = keywords.find(string(token_start, cursor-token_start));
+            if (kw == keywords.end()) token(Token::Kind::Identifier);
+            else token(kw->second);
+        }
+        else {
+            auto at = atoms.find(*cursor);
+            if (at == atoms.end()) token(Token::Kind::Undefined);
+            else token(at->second);
+            advance();
+        }
     }
-    else if (isIdentifierStart(*beg)) {
-        k = Token::Kind::Identifier;
-        while (isIdentifierFollow(*beg)) advance();
-    }
-    else {
-             if (*beg == '=') k = Token::Kind::Assign;
-        else if (*beg == '+') k = Token::Kind::Plus;
-        else if (*beg == '-') k = Token::Kind::Minus;
-        else if (*beg == '*') k = Token::Kind::Mul;
-        else if (*beg == '/') k = Token::Kind::Div;
-        else if (*beg == '(') k = Token::Kind::LP;
-        else if (*beg == ')') k = Token::Kind::RP;
-        else if (*beg == ';') k = Token::Kind::Semicolon;
-        beg++;
-    }
-
-    int length = beg-start;
-    if (strncmp(start, "function", length) == 0) k = Token::Kind::Function;
-    return Token(k, start, length, currentLine, currentColumn);
-}
-
-Token Lexer::peek() {
-    auto temp = beg;
-    auto tok = next();
-    beg = temp;
-    return tok;
 }

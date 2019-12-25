@@ -6,6 +6,7 @@
 class Token {
 public:
     enum class Kind {
+        Undefined,
         Identifier,
         Number,
         Assign,
@@ -15,26 +16,24 @@ public:
         Div,
         LP,
         RP,
+        LC,
+        RC,
         Semicolon,
         Function,
-        End
     };
     Token() = default;
-    Token(Kind kind, const char *beg, int length, int line, int column) {
+    Token(Kind kind, const char *beg, int length) {
         this->kind_ = kind;
         this->beg = beg;
         this->length = length;
-        this->line = line;
-        this->column = column;
     }
 
     Token::Kind kind() const { return kind_; }
     std::string get() const { return std::string(beg, length); }
 private:
-    Kind kind_ = Kind::End;
+    Kind kind_;
     const char *beg;
     int length;
-    int line, column;
 };
 
 std::vector<Token> lexer(const char *beg);

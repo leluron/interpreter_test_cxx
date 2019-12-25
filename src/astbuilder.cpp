@@ -4,9 +4,8 @@
 using namespace std;
 
 Token ASTBuilder::next() {
-    if (index >= tokens.size()) return Token();
-    index += 1;
-    return tokens[index-1];
+    if (index >= tokens.size()) throw runtime_error("Reached end of tokens");
+    return tokens[index++];
 }
 
 Token ASTBuilder::peek() {
@@ -17,10 +16,12 @@ Token ASTBuilder::peek() {
 }
 
 vector<std::shared_ptr<Statement>> ASTBuilder::parseStatementList() {
-    vector<std::shared_ptr<Statement>> list = {parseStatement()};
-    while (peek().kind() != Token::Kind::End) {
+    if (!expect(Token::Kind::LC)) throw runtime_error("Expected opening block");
+    vector<std::shared_ptr<Statement>> list = {};
+    while (peek().kind() != Token::Kind::RC) {
         list.push_back(parseStatement());
     }
+    next();
     return list;
 }
 
