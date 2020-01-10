@@ -9,7 +9,7 @@ using namespace std;
 
 void Machine::interpret(string expr) {
     auto tokens = lexer(expr.c_str());
-    auto st = ASTBuilder(tokens).parseStatementList();
+    auto st = ASTBuilder(tokens).parseFile();
     for (auto s : st) {
         s->exec(vars);
     }

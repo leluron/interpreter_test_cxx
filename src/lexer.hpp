@@ -7,6 +7,7 @@ class Token {
 public:
     enum class Kind {
         Undefined,
+        Eof,
         Identifier,
         Number,
         Assign,
@@ -14,6 +15,7 @@ public:
         Minus,
         Mul,
         Div,
+        Mod,
         LP,
         RP,
         LC,
@@ -21,6 +23,26 @@ public:
         Semicolon,
         Function,
         Nil,
+        If,
+        Then,
+        ElseIf,
+        End,
+        Else,
+        While,
+        Do,
+        For,
+        Comma,
+        Or,
+        And,
+        IsEqual,
+        NotEqual,
+        LessEqual,
+        Less,
+        Greater,
+        GreaterEqual,
+        StringLiteral,
+        Return,
+        Not
     };
     Token() = default;
     Token(Kind kind, const char *beg, int length) {

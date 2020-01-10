@@ -15,29 +15,27 @@ Token ASTBuilder::peek() {
     return t;
 }
 
-vector<std::shared_ptr<Statement>> ASTBuilder::parseStatementList() {
-    if (!expect(Token::Kind::LC)) throw runtime_error("Expected opening block");
-    vector<std::shared_ptr<Statement>> list = {};
-    while (peek().kind() != Token::Kind::RC) {
-        list.push_back(parseStatement());
-    }
-    next();
-    return list;
+block ASTBuilder::parseFile() {
+    return parseBlock();
 }
 
 bool ASTBuilder::expect(Token::Kind kind) {
     return next().kind() == kind;
 }
 
-shared_ptr<Statement> ASTBuilder::parseStatement() {
+statp ASTBuilder::parseStatement() {
     Token token = next();
     switch (token.kind()) {
         case Token::Kind::Identifier: return parseStatementAux(token.get());
+        case Token::Kind::If : return parseIf();
+        case Token::Kind::While: return parseWhile();
+        case Token::Kind::For: return parseFor();
+        case Token::Kind::Return: return parseReturn();
         default: throw runtime_error("Not Supported");
     }
 }
 
-shared_ptr<Statement> ASTBuilder::parseStatementAux(string id) {
+statp ASTBuilder::parseStatementAux(string id) {
     Token token = next();
     switch (token.kind()) {
         case Token::Kind::Assign: return parseAssignStatement(id);
@@ -45,16 +43,192 @@ shared_ptr<Statement> ASTBuilder::parseStatementAux(string id) {
     }
 }
 
-shared_ptr<Statement> ASTBuilder::parseAssignStatement(string id) {
-    return shared_ptr<Statement>(new AssignStatement(id, parseExpression())) ;
+statp ASTBuilder::parseAssignStatement(string id) {
+    return statp(new AssignStatement(id, parseExpression())) ;
 }
 
-shared_ptr<Expr> ASTBuilder::parseExpression() {
+statp ASTBuilder::parseIf() {
+    auto cond = parseExpression();
+    if (!expect(Token::Kind::Then)) throw runtime_error("expected then");
+    auto b1 = parseBlock();
+    auto k = next().kind();
+    if (k == Token::Kind::End) return statp(new ConditionStatement(cond, b1));
+    else if (k == Token::Kind::Else) {
+        auto b2 = parseBlock();
+        if (!expect(Token::Kind::End)) throw runtime_error("expected end");
+        return statp(new ConditionStatement(cond, b1, b2));
+    }
+    else if (k == Token::Kind::ElseIf) {
+        auto s = parseIf();
+        return statp(new ConditionStatement(cond, b1, {s}));
+    }
+    else throw runtime_error("unexpected symbol for block end");
+}
+
+statp ASTBuilder::parseWhile() {
+    auto cond = parseExpression();
+    if (!expect(Token::Kind::Do)) throw runtime_error("expected do");
+    auto b = parseBlock();
+    if (!expect(Token::Kind::End)) throw runtime_error("expected end");
+    return statp(new WhileStatement(cond, b));
+}
+
+statp ASTBuilder::parseFor() {
+    if (!expect(Token::Kind::LP)) throw runtime_error("expected (");
+    auto init = parseStatement();
+    if (!expect(Token::Kind::Comma)) throw runtime_error("expected ,");
+    auto cond = parseExpression();
+    if (!expect(Token::Kind::Comma)) throw runtime_error("expected ,");
+    auto action = parseStatement();
+    if (!expect(Token::Kind::RP)) throw runtime_error("expected )");
+    auto body = parseBlock();
+    if (!expect(Token::Kind::End)) throw runtime_error("expected end");
+    return statp(new ForStatement(init, cond, action, body));
+}
+
+statp ASTBuilder::parseReturn() {
+    return statp(new ReturnStatement(parseExpression()));
+}
+
+exprp ASTBuilder::parseExpression() {
+    Token token = peek();
+    switch (token.kind()) {
+        case Token::Kind::If: return parseTernary();
+        case Token::Kind::Function: return parseFunction();
+        default: return parseLogicOr();
+    }
+}
+
+exprp ASTBuilder::parseTernary() {
+    next();
+    auto cond = parseExpression();
+    if (!expect(Token::Kind::Then)) throw runtime_error("expected then");
+    auto e1 = parseExpression();
+    if (!expect(Token::Kind::Else)) throw runtime_error("expected else");
+    auto e2 = parseExpression();
+    return exprp(new TernaryExpr(cond, e1, e2));
+}
+
+vector<string> ASTBuilder::parseArgList() {
+    auto t = next();
+    if (t.kind() != Token::Kind::Identifier) throw runtime_error("expected identifier as arg");
+    vector<string> args = {t.get()};
+    Token t2 = peek();
+    while (t2.kind() == Token::Kind::Comma) {
+        next();
+        auto t = next();
+        if (t.kind() != Token::Kind::Identifier) throw runtime_error("expected identifier as arg");
+        args.push_back(t.get());
+        t2 = peek();
+    }
+    return args;
+}
+
+block ASTBuilder::parseBlock() {
+    block list = {};
+    while (true) {
+        switch (peek().kind()) {
+            case Token::Kind::Eof:
+            case Token::Kind::End:
+            case Token::Kind::Else:
+            case Token::Kind::ElseIf:
+                return list;
+            default:
+                list.push_back(parseStatement());
+        }
+    }
+    return list;
+}
+
+
+exprp ASTBuilder::parseFunction() {
+    next();
+    expect(Token::Kind::LP);
+    auto args = parseArgList();
+    expect(Token::Kind::RP);
+    auto body = parseBlock();
+    if (!expect(Token::Kind::End)) throw ("expected end");
+    return exprp(new FunctionExpr(args, body));
+}
+
+exprp ASTBuilder::parseLogicOr() {
+    auto e = parseLogicAnd();
+    return parseLogicOrAux(e);
+}
+
+exprp ASTBuilder::parseLogicOrAux(exprp e) {
+    Token token = peek();
+    BOpType type;
+    switch (token.kind()) {
+        case Token::Kind::Or: type = BOpType::Or; break;
+        default :
+            return e;
+    }
+    next();
+    return parseLogicOrAux(exprp(new BOpExpr(type, e, parseLogicAnd())));
+}
+
+exprp ASTBuilder::parseLogicAnd() {
+    auto e = parseComp();
+    return parseLogicAndAux(e);
+}
+
+exprp ASTBuilder::parseLogicAndAux(exprp e) {
+    Token token = peek();
+    BOpType type;
+    switch (token.kind()) {
+        case Token::Kind::And: type = BOpType::And; break;
+        default :
+            return e;
+    }
+    next();
+    return parseLogicAndAux(exprp(new BOpExpr(type, e, parseComp())));
+}
+
+exprp ASTBuilder::parseComp() {
+    auto e = parseRel();
+    return parseCompAux(e);
+}
+
+exprp ASTBuilder::parseCompAux(exprp e) {
+    Token token = peek();
+    BOpType type;
+    switch (token.kind()) {
+        case Token::Kind::IsEqual: type = BOpType::IsEqual; break;
+        case Token::Kind::NotEqual: type = BOpType::NotEqual; break;
+        default :
+            return e;
+    }
+    next();
+    return parseCompAux(exprp(new BOpExpr(type, e, parseRel())));
+}
+
+exprp ASTBuilder::parseRel() {
+    auto e = parseTerm();
+    return parseRelAux(e);
+}
+
+exprp ASTBuilder::parseRelAux(exprp e) {
+    Token token = peek();
+    BOpType type;
+    switch (token.kind()) {
+        case Token::Kind::LessEqual: type = BOpType::LessEqual; break;
+        case Token::Kind::GreaterEqual: type = BOpType::GreaterEqual; break;
+        case Token::Kind::Less: type = BOpType::Less; break;
+        case Token::Kind::Greater: type = BOpType::Greater; break;
+        default :
+            return e;
+    }
+    next();
+    return parseRelAux(exprp(new BOpExpr(type, e, parseTerm())));
+}
+
+exprp ASTBuilder::parseTerm() {
     auto e = parseFactor();
-    return parseExpressionAux(e);
+    return parseTermAux(e);
 }
 
-shared_ptr<Expr> ASTBuilder::parseExpressionAux(std::shared_ptr<Expr> e) {
+exprp ASTBuilder::parseTermAux(exprp e) {
     Token token = peek();
     BOpType type;
     switch (token.kind()) {
@@ -64,32 +238,48 @@ shared_ptr<Expr> ASTBuilder::parseExpressionAux(std::shared_ptr<Expr> e) {
             return e;
     }
     next();
-    return parseExpressionAux(shared_ptr<Expr>(new BOpExpr(type, e, parseFactor())));
+    return parseTermAux(exprp(new BOpExpr(type, e, parseFactor())));
 }
 
-shared_ptr<Expr> ASTBuilder::parseFactor() {
+exprp ASTBuilder::parseFactor() {
     auto e = parsePrimary();
     return parseFactorAux(e);
 }
 
-shared_ptr<Expr> ASTBuilder::parseFactorAux(std::shared_ptr<Expr> e) {
+exprp ASTBuilder::parseFactorAux(exprp e) {
     Token token = peek();
     BOpType type;
     switch (token.kind()) {
         case Token::Kind::Mul: type = BOpType::Mul; break;
         case Token::Kind::Div: type = BOpType::Div; break;
+        case Token::Kind::Mod: type = BOpType::Mod; break;
         default :
             return e;
     }
     next();
-    return parseExpressionAux(shared_ptr<Expr>(new BOpExpr(type, e, parsePrimary())));
+    return parseFactorAux(exprp(new BOpExpr(type, e, parsePrimary())));
 }
 
-shared_ptr<Expr> ASTBuilder::parsePrimary() {
+exprp ASTBuilder::parsePrimary() {
+    Token t = peek();
+    switch (t.kind()) {
+        case Token::Kind::Minus: parsePrimaryAux(UnOpType::Minus);
+        case Token::Kind::Plus: parsePrimaryAux(UnOpType::Plus);
+        case Token::Kind::Not: parsePrimaryAux(UnOpType::Not);
+        default: return parseElement();
+    }
+}
+
+exprp ASTBuilder::parsePrimaryAux(UnOpType un) {
+    next();
+    return exprp(new UnOpExpr(un, parsePrimary()));
+}
+
+exprp ASTBuilder::parseElement() {
     Token token = next();
     switch (token.kind()) {
         case Token::Kind::LP: {
-            std::shared_ptr<Expr> e = parseExpression();
+            exprp e = parseExpression();
             if (!expect(Token::Kind::RP)) throw runtime_error("No closing parenthesis");
             return e;
         }
@@ -97,10 +287,13 @@ shared_ptr<Expr> ASTBuilder::parsePrimary() {
             stringstream ss(token.get());
             double number;
             ss >> number;
-            return shared_ptr<Expr>(new NumberExpr(number));
+            return exprp(new NumberExpr(number));
         }
         case Token::Kind::Identifier: {
-            return shared_ptr<Expr>(new IdentifierExpr(token.get()));
+            return exprp(new IdentifierExpr(token.get()));
+        }
+        case Token::Kind::StringLiteral: {
+            return exprp(new StringLiteralExpr(token.get()));
         }
 
         default:

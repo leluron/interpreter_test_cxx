@@ -69,20 +69,34 @@ void Lexer::token(Token::Kind kind) {
 vector<Token> Lexer::tokenize() {
     keywords["function"] = Token::Kind::Function;
     keywords["nil"] = Token::Kind::Nil;
-    atoms['='] = Token::Kind::Assign;
+    keywords["if"] = Token::Kind::If;
+    keywords["then"] = Token::Kind::Then;
+    keywords["elseif"] = Token::Kind::ElseIf;
+    keywords["end"] = Token::Kind::End;
+    keywords["else"] = Token::Kind::Else;
+    keywords["while"] = Token::Kind::While;
+    keywords["do"] = Token::Kind::Do;
+    keywords["for"] = Token::Kind::For;
+    keywords["or"] = Token::Kind::Or;
+    keywords["and"] = Token::Kind::And;
     atoms['+'] = Token::Kind::Plus;
     atoms['-'] = Token::Kind::Minus;
     atoms['*'] = Token::Kind::Mul;
     atoms['/'] = Token::Kind::Div;
+    atoms['%'] = Token::Kind::Mod;
     atoms['('] = Token::Kind::LP;
     atoms[')'] = Token::Kind::RP;
     atoms['{'] = Token::Kind::LC;
     atoms['}'] = Token::Kind::RC;
     atoms[';'] = Token::Kind::Semicolon;
+    atoms[','] = Token::Kind::Comma;
 
     while(true) {
         while (isWhitespace()) advance();
-        if (isEnd()) return tokens;
+        if (isEnd()) {
+            token(Token::Kind::Eof);
+            return tokens;
+        }
         token_start = cursor;
 
         if (isDigit()) {
@@ -94,6 +108,42 @@ vector<Token> Lexer::tokenize() {
             auto kw = keywords.find(string(token_start, cursor-token_start));
             if (kw == keywords.end()) token(Token::Kind::Identifier);
             else token(kw->second);
+        }
+        else if (isChar('=')) {
+            advance();
+            if (isChar('=')) {
+                token(Token::Kind::IsEqual);
+                advance();
+            } else {
+                token(Token::Kind::Assign);
+            }
+        }
+        else if (isChar('!')) {
+            advance();
+            if (isChar('=')) {
+                token(Token::Kind::NotEqual);
+                advance();
+            } else {
+                throw runtime_error("Unknown symbol '!'");
+            }
+        }
+        else if (isChar('<')) {
+            advance();
+            if (isChar('=')) {
+                token(Token::Kind::LessEqual);
+                advance();
+            } else {
+                token(Token::Kind::Less);
+            }
+        }
+        else if (isChar('>')) {
+            advance();
+            if (isChar('=')) {
+                token(Token::Kind::GreaterEqual);
+                advance();
+            } else {
+                token(Token::Kind::Greater);
+            }
         }
         else {
             auto at = atoms.find(*cursor);

@@ -1,17 +1,37 @@
-statementList ::= { statement }
+block ::= { statement }
 
-statement ::= "print" expression
-            | identifier "=" expression
+statement ::= assign
+  | "if" expr "then" block { "elseif" expr "then" block } [ "else" block ] "end"
+  | "while" expr "do" block "end"
+  | "for" statement "," expr "," statement "do" block "end" 
+  | "return" expr
 
+assign ::= identifier "=" expr
 
-expression ::= factor ("+" | "-" ) factor
-             | factor
+expr = "if" expr "then" expr "else" expr
+  | "function" "(" [ idenlist ] ")" block "end"
+  | logicor
 
-factor ::= primary ("*" | "/" ) primary
-         | primary
+idenlist ::= identifier { "," identifier }
 
-primary ::= "(" expression ")"
-          | number
-          | identifier
+logicor ::= logicand ["or" logicand]
 
+logicand ::= comp ["and" comp]
 
+comp ::= rel [("==" | "!=") rel]
+
+rel ::= term [("<=" | "<" | ">" | ">=") term]
+
+term ::= factor [("+" | "-") factor]
+
+factor ::= primary [("*" | "/" | "%") primary]
+
+primary ::= ("-" | "+" | "not") primary
+  | element
+
+element ::= "(" expr ")"
+  | number
+  | identifier "(" [ arglist ] ")"
+  | stringliteral
+
+arglist ::= expr { "," expr }
